@@ -6,6 +6,10 @@ from modules.scrapper import Scrapper
 
 app = Flask(__name__)
 
+@app.route('/')
+def home():
+    return 'Hello, Flask is up and running!'
+
 @app.route('/scrape', methods=['POST'])
 def scrape():
     data = request.json
