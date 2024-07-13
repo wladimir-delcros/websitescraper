@@ -1,8 +1,8 @@
-import re
 from typing import Any
 import requests
 from requests.models import Response
 from bs4 import BeautifulSoup
+import re
 
 class Scrapper:
     """
@@ -17,6 +17,7 @@ class Scrapper:
             contents (list, optional): Defaults to [].
             crawl (bool): Defaults to False.
         """
+
         self.url = url
         self.urls = []
         self.contents = contents
@@ -32,14 +33,14 @@ class Scrapper:
         contents: list = []
 
         for content in self.contents:
-            soup: any = BeautifulSoup(content, "html.parser")
+            soup: Any = BeautifulSoup(content, "html.parser")
 
             for script in soup(["script", "style"]):
                 script.extract()
 
             cleaned: str = soup.get_text()
-            lines: object = (line.strip() for line in cleaned.splitlines())
-            chunks: object = (
+            lines: Any = (line.strip() for line in cleaned.splitlines())
+            chunks: Any = (
                 phrase.strip()
                 for line in lines for phrase in line.split("  ")
             )
@@ -58,32 +59,43 @@ class Scrapper:
         content: str = requests.get(self.url).text
         soup = BeautifulSoup(content, "html.parser")
         for link in soup.find_all('a'):
-            if link.get("href") is not None:
-                if self.url not in link.get("href"):
-                    if "http" not in link.get("href") and "https" not in link.get("href") and "mailto:" not in link.get("href"):
-                        urls.append(self.url + link.get('href'))
-                        continue
-            urls.append(link.get("href"))
+            href = link.get("href")
+            if href:
+                if self.url not in href:
+                    if not any(proto in href for proto in ["http", "https", "mailto:"]):
+                        href = self.url + href
+                urls.append(href)
         return urls
 
-    def extract_phones(self, contents: list) -> list:
-        """Extract phone numbers from the content
+    def extract_emails(self, text: str) -> list:
+        """Extract emails from text"""
+        email_regex = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
+        return email_regex.findall(text)
 
-        Args:
-            contents (list): List of HTML content
+    def extract_phones(self, text: str) -> list:
+        """Extract phone numbers from text"""
+        phone_regex = re.compile(r'\+?\d[\d\s\-\(\)]{7,}\d')
+        return phone_regex.findall(text)
 
-        Returns:
-            list: List of extracted phone numbers
-        """
-        phone_numbers = []
-        phone_pattern = re.compile(r'tel:\+?[\d\s\-]+')
-        
-        for content in contents:
-            soup = BeautifulSoup(content, "html.parser")
-            for link in soup.find_all('a', href=phone_pattern):
-                phone_numbers.append(link.get('href').replace('tel:', ''))
-        
-        return phone_numbers
+    def extract_social_media(self, text: str) -> list:
+        """Extract social media links from text"""
+        social_media = []
+        social_media_patterns = {
+            "twitter": re.compile(r'https?://(www\.)?twitter\.com/[a-zA-Z0-9_]+'),
+            "linkedin": re.compile(r'https?://(www\.)?linkedin\.com/in/[a-zA-Z0-9_\-]+'),
+            "facebook": re.compile(r'https?://(www\.)?facebook\.com/[a-zA-Z0-9_\-]+'),
+            "instagram": re.compile(r'https?://(www\.)?instagram\.com/[a-zA-Z0-9_\-]+'),
+            "discord": re.compile(r'https?://(www\.)?discord\.gg/[a-zA-Z0-9_\-]+'),
+            "youtube": re.compile(r'https?://(www\.)?youtube\.com/[a-zA-Z0-9_\-]+'),
+            "github": re.compile(r'https?://(www\.)?github\.com/[a-zA-Z0-9_\-]+'),
+            "medium": re.compile(r'https?://(www\.)?medium\.com/[a-zA-Z0-9_\-]+'),
+            "reddit": re.compile(r'https?://(www\.)?reddit\.com/[a-zA-Z0-9_\-]+'),
+            "pinterest": re.compile(r'https?://(www\.)?pinterest\.com/[a-zA-Z0-9_\-]+'),
+            "tiktok": re.compile(r'https?://(www\.)?tiktok\.com/[a-zA-Z0-9_\-]+')
+        }
+        for platform, pattern in social_media_patterns.items():
+            social_media.extend(pattern.findall(text))
+        return social_media
 
     def getText(self) -> dict:
         """getText function
@@ -96,7 +108,7 @@ class Scrapper:
         if self.crawl:
             for url in urls:
                 try:
-                    if url is not None:
+                    if url:
                         req: Response = requests.get(url)
                         contents.append(req.text)
                 except requests.exceptions.MissingSchema:
@@ -104,8 +116,16 @@ class Scrapper:
         else:
             req: Response = requests.get(self.url)
             contents.append(req.text)
-        
-        cleaned_contents = Scrapper(contents=contents).clean()
-        phones = self.extract_phones(contents)
-        
-        return {"text": cleaned_contents, "urls": urls, "phones": phones}
+
+        contents = Scrapper(contents=contents).clean()
+        all_text = ' '.join(contents)
+        emails = self.extract_emails(all_text)
+        phones = self.extract_phones(all_text)
+        social_media = self.extract_social_media(all_text)
+
+        return {
+            "E-Mails": emails,
+            "Numbers": phones,
+            "SocialMedia": social_media,
+            "SocialMediaInfo": [{"url": url, "info": {}} for url in social_media]
+        }
