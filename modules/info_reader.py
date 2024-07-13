@@ -58,8 +58,9 @@ class InfoReader:
             list: [description]
         """
         emails: list = []
+        print(f"Debug: Content passed to InfoReader: {self.content}")  # Log the content
         texts: object = self.content["text"]
-
+        
         for text in texts:
             for s in text.split("\n"):
                 if re.match(self.res["email"], s):

@@ -117,7 +117,7 @@ class Scrapper:
             req: Response = requests.get(self.url)
             contents.append(req.text)
 
-        contents = Scrapper(contents=contents).clean()
+        contents = self.clean()
         all_text = ' '.join(contents)
         emails = self.extract_emails(all_text)
         phones = self.extract_phones(all_text)
