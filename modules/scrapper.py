@@ -67,6 +67,20 @@ class Scrapper:
                 urls.append(href)
         return urls
 
+    def detect_contact_pages(self, urls: list) -> list:
+        """Detect contact and legal pages from URLs"""
+
+        contact_keywords = ['contact', 'mentions-legales', 'legal-notice', 'impressum', 'about']
+        contact_pages = []
+
+        for url in urls:
+            for keyword in contact_keywords:
+                if keyword in url.lower():
+                    contact_pages.append(url)
+                    break
+
+        return contact_pages
+
     def extract_emails(self, text: str) -> list:
         """Extract emails from text"""
         email_regex = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
@@ -97,6 +111,11 @@ class Scrapper:
             social_media.extend(pattern.findall(text))
         return social_media
 
+    def extract_siret(self, text: str) -> list:
+        """Extract SIRET numbers from text"""
+        siret_regex = re.compile(r'\b[\d\s]{14,14}\b')
+        return siret_regex.findall(text)
+
     def getText(self) -> dict:
         """getText function
 
@@ -104,30 +123,31 @@ class Scrapper:
             dict
         """
         urls = self.getURLs()
+        contact_pages = self.detect_contact_pages(urls)
+        all_urls = urls + contact_pages
+
         contents = []
-        if self.crawl:
-            for url in urls:
-                try:
-                    if url:
-                        req = requests.get(url)
-                        contents.append(req.text)
-                except requests.exceptions.MissingSchema:
-                    pass
-        else:
-            req = requests.get(self.url)
-            contents.append(req.text)
+        for url in all_urls:
+            try:
+                if url:
+                    req = requests.get(url)
+                    contents.append(req.text)
+            except requests.exceptions.MissingSchema:
+                pass
 
         cleaned_contents = Scrapper(contents=contents).clean()
         all_text = ' '.join(cleaned_contents)
         emails = self.extract_emails(all_text)
         phones = self.extract_phones(all_text)
         social_media = self.extract_social_media(all_text)
+        sirets = self.extract_siret(all_text)
 
         return {
             "text": cleaned_contents,
-            "urls": urls,
+            "urls": all_urls,
             "E-Mails": emails,
             "Numbers": phones,
             "SocialMedia": social_media,
+            "SIRET": sirets,
             "SocialMediaInfo": [{"url": url, "info": {}} for url in social_media]
         }

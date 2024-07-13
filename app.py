@@ -33,10 +33,12 @@ def scrape():
     emails = IR.getEmails()
     numbers = IR.getPhoneNumber()
     socials = IR.getSocials()
+    sirets = scrap.extract_siret(' '.join(scrap.getText()['text']))
     result = {
         "E-Mails": emails,
         "Numbers": numbers,
-        "SocialMedia": socials
+        "SocialMedia": socials,
+        "SIRET": sirets
     }
     
     if sm:
@@ -71,11 +73,13 @@ def scrape_multiple():
         emails = IR.getEmails()
         numbers = IR.getPhoneNumber()
         socials = IR.getSocials()
+        sirets = scrap.extract_siret(' '.join(scrap.getText()['text']))
         result = {
             "Target": url,
             "E-Mails": emails,
             "Numbers": numbers,
-            "SocialMedia": socials
+            "SocialMedia": socials,
+            "SIRET": sirets
         }
         
         if sm:
