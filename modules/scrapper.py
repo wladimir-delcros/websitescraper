@@ -3,14 +3,13 @@ import requests
 from requests.models import Response
 from bs4 import BeautifulSoup
 
-
 class Scrapper:
     """
     Scrapper Class
     """
 
     def __init__(self, url: str = None, contents: list = [], crawl=False) -> None:
-        """Contructor
+        """Constructor
 
         Args:
             url (str): [description]. Defaults to None.
@@ -56,16 +55,19 @@ class Scrapper:
         """
 
         urls: list = []
-        content: str = requests.get(self.url).text
-        soup = BeautifulSoup(content, "html.parser")
-        for link in soup.find_all('a'):
-            if link.get("href") is not None:
-                if self.url not in link.get("href"):
-                    if "http" not in link.get("href") and "https" not in link.get("href") and "mailto:" not in link.get(
-                            "href"):
-                        urls.append(self.url + link.get('href'))
-                        continue
-            urls.append(link.get("href"))
+        try:
+            content: str = requests.get(self.url, timeout=10).text
+            soup = BeautifulSoup(content, "html.parser")
+            for link in soup.find_all('a'):
+                if link.get("href") is not None:
+                    if self.url not in link.get("href"):
+                        if "http" not in link.get("href") and "https" not in link.get("href") and "mailto:" not in link.get(
+                                "href"):
+                            urls.append(self.url + link.get('href'))
+                            continue
+                urls.append(link.get("href"))
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching the URL: {e}")
         return urls
 
     def getText(self) -> dict:
@@ -80,12 +82,16 @@ class Scrapper:
             for url in urls:
                 try:
                     if url is not None:
-                        req: Response = requests.get(url)
+                        req: Response = requests.get(url, timeout=10)
                         contents.append(req.text)
-                except requests.exceptions.MissingSchema:
+                except requests.exceptions.RequestException as e:
+                    print(f"Error fetching the URL: {e}")
                     pass
         else:
-            req: Response = requests.get(self.url)
-            contents.append(req.text)
+            try:
+                req: Response = requests.get(self.url, timeout=10)
+                contents.append(req.text)
+            except requests.exceptions.RequestException as e:
+                print(f"Error fetching the URL: {e}")
         contents = Scrapper(contents=contents).clean()
         return {"text": contents, "urls": urls}
