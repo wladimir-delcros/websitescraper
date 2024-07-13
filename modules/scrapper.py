@@ -1,3 +1,4 @@
+import re
 from typing import Any
 import requests
 from requests.models import Response
@@ -16,7 +17,6 @@ class Scrapper:
             contents (list, optional): Defaults to [].
             crawl (bool): Defaults to False.
         """
-
         self.url = url
         self.urls = []
         self.contents = contents
@@ -55,20 +55,35 @@ class Scrapper:
         """
 
         urls: list = []
-        try:
-            content: str = requests.get(self.url, timeout=10).text
-            soup = BeautifulSoup(content, "html.parser")
-            for link in soup.find_all('a'):
-                if link.get("href") is not None:
-                    if self.url not in link.get("href"):
-                        if "http" not in link.get("href") and "https" not in link.get("href") and "mailto:" not in link.get(
-                                "href"):
-                            urls.append(self.url + link.get('href'))
-                            continue
-                urls.append(link.get("href"))
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching the URL: {e}")
+        content: str = requests.get(self.url).text
+        soup = BeautifulSoup(content, "html.parser")
+        for link in soup.find_all('a'):
+            if link.get("href") is not None:
+                if self.url not in link.get("href"):
+                    if "http" not in link.get("href") and "https" not in link.get("href") and "mailto:" not in link.get("href"):
+                        urls.append(self.url + link.get('href'))
+                        continue
+            urls.append(link.get("href"))
         return urls
+
+    def extract_phones(self, contents: list) -> list:
+        """Extract phone numbers from the content
+
+        Args:
+            contents (list): List of HTML content
+
+        Returns:
+            list: List of extracted phone numbers
+        """
+        phone_numbers = []
+        phone_pattern = re.compile(r'tel:\+?[\d\s\-]+')
+        
+        for content in contents:
+            soup = BeautifulSoup(content, "html.parser")
+            for link in soup.find_all('a', href=phone_pattern):
+                phone_numbers.append(link.get('href').replace('tel:', ''))
+        
+        return phone_numbers
 
     def getText(self) -> dict:
         """getText function
@@ -82,16 +97,15 @@ class Scrapper:
             for url in urls:
                 try:
                     if url is not None:
-                        req: Response = requests.get(url, timeout=10)
+                        req: Response = requests.get(url)
                         contents.append(req.text)
-                except requests.exceptions.RequestException as e:
-                    print(f"Error fetching the URL: {e}")
+                except requests.exceptions.MissingSchema:
                     pass
         else:
-            try:
-                req: Response = requests.get(self.url, timeout=10)
-                contents.append(req.text)
-            except requests.exceptions.RequestException as e:
-                print(f"Error fetching the URL: {e}")
-        contents = Scrapper(contents=contents).clean()
-        return {"text": contents, "urls": urls}
+            req: Response = requests.get(self.url)
+            contents.append(req.text)
+        
+        cleaned_contents = Scrapper(contents=contents).clean()
+        phones = self.extract_phones(contents)
+        
+        return {"text": cleaned_contents, "urls": urls, "phones": phones}
