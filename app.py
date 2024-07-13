@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify
-import json
 import requests
 from modules.info_reader import InfoReader
 from modules.scrapper import Scrapper
@@ -24,11 +23,9 @@ def scrape():
         url = "http://" + url
 
     try:
-        requests.get(url)
-    except requests.exceptions.MissingSchema:
-        return jsonify({"error": "Invalid URL format"}), 400
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        response = requests.get(url, timeout=10)
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Error fetching the URL: {e}"}), 400
 
     scrap = Scrapper(url=url, crawl=crawl)
     IR = InfoReader(content=scrap.getText())
@@ -63,12 +60,9 @@ def scrape_multiple():
             url = "http://" + url
         
         try:
-            requests.get(url)
-        except requests.exceptions.MissingSchema:
-            results.append({"url": url, "error": "Invalid URL format"})
-            continue
-        except Exception as e:
-            results.append({"url": url, "error": str(e)})
+            response = requests.get(url, timeout=10)
+        except requests.exceptions.RequestException as e:
+            results.append({"url": url, "error": f"Error fetching the URL: {e}"})
             continue
         
         scrap = Scrapper(url=url, crawl=crawl)
