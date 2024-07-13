@@ -1,10 +1,7 @@
 import re
 import string
-
-import requests.exceptions
 from socid_extractor import parse, extract
 from typing import List
-
 
 class InfoReader:
     """
@@ -12,7 +9,7 @@ class InfoReader:
     """
 
     def __init__(self, content: dict = None, social_path: str = "./socials.txt") -> None:
-        """Contructor
+        """Constructor
 
         Args:
             content (dict): [description]. Defaults to None.
@@ -20,15 +17,15 @@ class InfoReader:
         """
 
         if content is None:
-            content: dict = {
+            content = {
                 "text": [],
                 "urls": []
             }
 
-        self.content: list = content
-        self.social_path: str = social_path
-        self.res: dict = {
-            "phone": "/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,7}$/gm",
+        self.content = content
+        self.social_path = social_path
+        self.res = {
+            "phone": r"\+?\d[\d\s\-\(\)]{7,}\d",
             "email": r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
         }
 
@@ -38,15 +35,14 @@ class InfoReader:
         Returns:
             list: [description]
         """
-        # Doesnt work that good
-        numbers: list = []
-        texts: list = self.content["text"]
+        numbers = []
+        texts = self.content["text"]
 
         for text in texts:
             for n in text.split("\n"):
                 if re.match(self.res["phone"], n):
                     for letter in string.ascii_letters:
-                        n: object = n.replace(letter, "")
+                        n = n.replace(letter, "")
                     numbers.append(n)
 
         return list(dict.fromkeys(numbers))
@@ -57,9 +53,9 @@ class InfoReader:
         Returns:
             list: [description]
         """
-        emails: list = []
+        emails = []
         print(f"Debug: Content passed to InfoReader: {self.content}")  # Log the content
-        texts: object = self.content["text"]
+        texts = self.content["text"]
         
         for text in texts:
             for s in text.split("\n"):
@@ -80,8 +76,8 @@ class InfoReader:
         Returns:
             list: [description]
         """
-        sm_accounts: list = []
-        socials: object = open(self.social_path, "r+").readlines()
+        sm_accounts = []
+        socials = open(self.social_path, "r+").readlines()
 
         for url in self.content["urls"]:
             for s in socials:

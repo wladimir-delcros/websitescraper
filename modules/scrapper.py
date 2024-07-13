@@ -124,8 +124,10 @@ class Scrapper:
         social_media = self.extract_social_media(all_text)
 
         return {
+            "text": all_text,
             "E-Mails": emails,
             "Numbers": phones,
             "SocialMedia": social_media,
             "SocialMediaInfo": [{"url": url, "info": {}} for url in social_media]
         }
+        
