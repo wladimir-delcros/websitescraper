@@ -36,7 +36,7 @@ class InfoReader:
             list: [description]
         """
         numbers = []
-        texts = self.content["text"]
+        texts = self.content.get("text", [])
 
         for text in texts:
             for n in text.split("\n"):
@@ -55,14 +55,14 @@ class InfoReader:
         """
         emails = []
         print(f"Debug: Content passed to InfoReader: {self.content}")  # Log the content
-        texts = self.content["text"]
+        texts = self.content.get("text", [])
         
         for text in texts:
             for s in text.split("\n"):
                 if re.match(self.res["email"], s):
                     emails.append(s)
 
-        for link in self.content["urls"]:
+        for link in self.content.get("urls", []):
             if link is None:
                 continue
             if "mailto:" in link:
@@ -79,7 +79,7 @@ class InfoReader:
         sm_accounts = []
         socials = open(self.social_path, "r+").readlines()
 
-        for url in self.content["urls"]:
+        for url in self.content.get("urls", []):
             for s in socials:
                 if url is None:
                     continue

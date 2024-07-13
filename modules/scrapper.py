@@ -104,30 +104,30 @@ class Scrapper:
             dict
         """
         urls = self.getURLs()
-        contents: list = []
+        contents = []
         if self.crawl:
             for url in urls:
                 try:
                     if url:
-                        req: Response = requests.get(url)
+                        req = requests.get(url)
                         contents.append(req.text)
                 except requests.exceptions.MissingSchema:
                     pass
         else:
-            req: Response = requests.get(self.url)
+            req = requests.get(self.url)
             contents.append(req.text)
 
-        contents = self.clean()
-        all_text = ' '.join(contents)
+        cleaned_contents = Scrapper(contents=contents).clean()
+        all_text = ' '.join(cleaned_contents)
         emails = self.extract_emails(all_text)
         phones = self.extract_phones(all_text)
         social_media = self.extract_social_media(all_text)
 
         return {
-            "text": all_text,
+            "text": cleaned_contents,
+            "urls": urls,
             "E-Mails": emails,
             "Numbers": phones,
             "SocialMedia": social_media,
             "SocialMediaInfo": [{"url": url, "info": {}} for url in social_media]
         }
-        

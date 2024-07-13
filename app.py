@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+import json
 import requests
 from modules.info_reader import InfoReader
 from modules.scrapper import Scrapper
