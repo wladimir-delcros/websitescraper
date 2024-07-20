@@ -73,15 +73,11 @@ def scrape():
         scrap = Scrapper(url=url, crawl=crawl)
         text_data = scrap.getText()
         
-        emails = remove_duplicates(text_data.get('E-Mails', []))
-        phone_numbers = normalize_phone_numbers(text_data.get('Numbers', []))
+        emails = text_data.get('E-Mails', [])
+        phone_numbers = text_data.get('Numbers', [])
         socials = text_data.get('SocialMedia', {})
         siret_or_siren = text_data.get('SIRET_OR_SIREN', {})
         meta_info = text_data.get('HomepageMetaInfo', {})
-
-        valid_siret = [siret for siret in siret_or_siren.get("SIRET", [])
-                       if any(siret.startswith(siren) for siren in siret_or_siren.get("SIREN", []))]
-        siret_or_siren["SIRET"] = valid_siret
 
         result = {
             "status": "OK",
@@ -97,8 +93,9 @@ def scrape():
             }]
         }
         
-        if sm:
-            result["data"][0]["SocialMediaInfo"] = scrap.getSocialsInfo()
+        # Supprimez ou commentez cette ligne si getSocialsInfo n'est pas nécessaire
+        # if sm:
+        #     result["data"][0]["SocialMediaInfo"] = scrap.getSocialsInfo()
 
         app.logger.debug('Scrape result prepared')
         return jsonify(result), 200
