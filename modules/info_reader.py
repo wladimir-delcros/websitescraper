@@ -26,7 +26,7 @@ class InfoReader:
         self.social_path = social_path
         self.res = {
             "phone": r"\+?\d[\d\s\-\(\)]{7,}\d",
-            "email": r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
+            "email": re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
         }
 
     def getPhoneNumber(self) -> list:
@@ -54,10 +54,10 @@ class InfoReader:
             list: [description]
         """
         emails = []
-        print(f"Debug: Content passed to InfoReader: {self.content}")  # Log the content
         texts = self.content.get("text", [])
         
         for text in texts:
+            logging.debug(f'Processing text for emails: {text[:500]}...')  # Log the first 500 characters
             for s in text.split("\n"):
                 if re.match(self.res["email"], s):
                     emails.append(s)
@@ -68,6 +68,7 @@ class InfoReader:
             if "mailto:" in link:
                 emails.append(link.replace("mailto:", ""))
 
+        logging.debug(f'Extracted emails: {emails}')
         return list(dict.fromkeys(emails))
 
     def getSocials(self) -> list:
