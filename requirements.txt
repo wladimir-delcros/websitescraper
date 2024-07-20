@@ -5,3 +5,4 @@ socid-extractor
 flask
 gunicorn
 fake_useragent
+phonenumbers
