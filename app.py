@@ -1,5 +1,5 @@
 import logging
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify,render_template
 import requests
 from modules.scrapper import Scrapper
 import phonenumbers
@@ -54,7 +54,7 @@ def remove_duplicates(data_list):
 @app.route('/')
 def home():
     app.logger.info('Home endpoint hit')
-    return 'Hello, Flask is up and running!'
+    return render_template('index.html')
 
 @app.route('/scrape', methods=['POST'])
 def scrape():
@@ -162,4 +162,4 @@ def scrape_multiple():
     return jsonify(response), 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000,debug=True)

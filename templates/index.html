@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domain Scraper</title>
+</head>
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+</style>
+<body>
+    <h1>Domain Scraper</h1>
+    <form id="domainForm">
+        <label for="domain">Enter Domain:</label>
+        <input type="text" id="domain" name="domain">
+        <button type="button" onclick="submitForm()">Search</button>
+    </form>
+    <br>
+    <div id="results"></div>
+
+    <script>
+        function submitForm() {
+            var domain = document.getElementById("domain").value;
+            fetch('/scrape', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url: domain })
+            })
+            .then(response => response.json())
+            .then(data => {
+                displayResults(data);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function displayResults(data) {
+            var resultsDiv = document.getElementById("results");
+            resultsDiv.innerHTML = ""; // Clear previous results
+            console.log(data['data']);
+            var table = document.createElement("table");
+            var tbody = document.createElement("tbody");
+
+            for (var dataset in data['data']) {
+                
+                renderTable(data['data'][dataset], 'results');
+            }
+
+            table.appendChild(tbody);
+            resultsDiv.appendChild(table);
+        }
+        function renderTable(data, containerId) {
+            const container = document.getElementById(containerId);
+
+            // Function to create table
+            function createTable(headers, rows) {
+                const table = document.createElement('table');
+                const thead = document.createElement('thead');
+                const tbody = document.createElement('tbody');
+
+                // Create header row
+                const headerRow = document.createElement('tr');
+                headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+
+                // Create data rows
+                rows.forEach(row => {
+                    const dataRow = document.createElement('tr');
+                    
+                    const td = document.createElement('td');
+                    td.textContent = row['value'];
+                    dataRow.appendChild(td);
+                    const source = document.createElement('td');
+                    source.textContent = row['sources'][0];
+                    dataRow.appendChild(source);
+                   
+                    tbody.appendChild(dataRow);
+                });
+
+                table.appendChild(thead);
+                table.appendChild(tbody);
+                return table;
+            }
+
+            // Render emails table
+            
+            if (data.emails.length > 0) {
+                const emailHeaders = ['Email','source'];
+                const emailRows = data.emails
+                container.appendChild(createTable(emailHeaders, emailRows));
+            }
+
+            // Render phone numbers table
+            if (data.phone_numbers.length > 0) {
+                const phoneHeaders = [ 'Number','source'];
+                const phoneRows = data.phone_numbers
+
+                container.appendChild(createTable(phoneHeaders, phoneRows));
+            }
+        }
+    </script>
+</body>
+</html>

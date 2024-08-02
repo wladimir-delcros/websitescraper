@@ -1,8 +1,8 @@
 requests
 beautifulsoup4
 argparse
-socid-extractor
 flask
 gunicorn
 fake_useragent
 phonenumbers
+socid-extractor
