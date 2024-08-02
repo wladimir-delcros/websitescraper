@@ -1,19 +1,20 @@
 import logging
-from typing import Any, List
+from typing import Any, List, Dict, Optional
 import requests
 from bs4 import BeautifulSoup
 import re
 from fake_useragent import UserAgent
 import random
+import uuid
 
 class Scrapper:
     """
     Scrapper Class
     """
 
-    def __init__(self, url: str = None, contents: list = None, crawl=False, proxy_file='proxies.txt') -> None:
+    def __init__(self, url: Optional[str] = None, contents: Optional[List[str]] = None, crawl: bool = False, proxy_file: str = 'proxies.txt') -> None:
         """Constructor
-    
+        
         Args:
             url (str): URL to scrape. Defaults to None.
             contents (list, optional): Contents to process. Defaults to None.
@@ -26,9 +27,10 @@ class Scrapper:
         self.crawl = crawl
         self.ua = UserAgent()
         self.proxies = self.load_proxies(proxy_file)
-        logging.debug(f'Initialized Scrapper with URL: {url}, crawl: {crawl}, proxies: {self.proxies}')
+        self.request_id = str(uuid.uuid4())
+        logging.debug(f'Initialized Scrapper with URL: {url}, crawl: {crawl}, proxies: {self.proxies}, request_id: {self.request_id}')
 
-    def load_proxies(self, proxy_file):
+    def load_proxies(self, proxy_file: str) -> List[str]:
         try:
             with open(proxy_file, 'r') as f:
                 proxies = [line.strip() for line in f if line.strip()]
@@ -38,23 +40,23 @@ class Scrapper:
             logging.warning(f'Proxy file {proxy_file} not found')
             return []
 
-    def get_random_proxy(self):
+    def get_random_proxy(self) -> Optional[Dict[str, str]]:
         proxy = {'http': random.choice(self.proxies)} if self.proxies else None
         logging.debug(f'Using proxy: {proxy}')
         return proxy
 
-    def get_headers(self):
+    def get_headers(self) -> Dict[str, str]:
         user_agent = self.ua.random
         logging.debug(f'Using User-Agent: {user_agent}')
         return {'User-Agent': user_agent}
 
-    def clean(self) -> list:
+    def clean(self) -> List[str]:
         """Clean HTML contents.
-
+        
         Returns:
             list: Cleaned text content.
         """
-        contents: list = []
+        contents: List[str] = []
         for content in self.contents:
             soup: Any = BeautifulSoup(content, "html.parser")
             for script in soup(["script", "style"]):
@@ -69,7 +71,7 @@ class Scrapper:
         logging.debug('Cleaned contents from HTML')
         return contents
 
-    def get_contact_and_legal_urls(self, soup):
+    def get_contact_and_legal_urls(self, soup: BeautifulSoup) -> List[str]:
         """Prioritize contact and legal pages"""
         contact_keywords = ['contact', 'mentions-legales', 'impressum', 'terms', 'privacy']
         urls = []
@@ -81,13 +83,13 @@ class Scrapper:
                 urls.append(href)
         return urls
 
-    def getURLs(self) -> list:
+    def getURLs(self) -> List[str]:
         """Get URLs from the main page
-
+        
         Returns:
             list: List of URLs found on the page.
         """
-        urls: list = []
+        urls: List[str] = []
         try:
             response = requests.get(self.url, headers=self.get_headers(), proxies=self.get_random_proxy(), timeout=10)
             content: str = response.text
@@ -106,21 +108,21 @@ class Scrapper:
             logging.error(f'Error fetching URLs: {e}')
         return urls
 
-    def extract_emails(self, text: str) -> list:
+    def extract_emails(self, text: str, source: str) -> List[Dict[str, Any]]:
         """Extract emails from text and HTML content
-
+        
         Returns:
-            list: List of unique emails found.
+            list: List of unique emails found with their sources.
         """
         email_pattern = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
         emails = set()
 
-        # Extraire les e-mails du texte brut
+        # Extract emails from plain text
         found_emails = email_pattern.findall(text)
-        logging.debug(f'Emails found in text: {found_emails}')
+        logging.debug(f'Emails found in {source}: {found_emails}')
         emails.update(found_emails)
 
-        # Extraire les e-mails des attributs href des balises <a>
+        # Extract emails from href attributes of <a> tags
         soup = BeautifulSoup(text, 'html.parser')
         for a in soup.find_all('a', href=True):
             href = a['href']
@@ -130,20 +132,23 @@ class Scrapper:
                 emails.add(email)
 
         logging.debug(f'Extracted emails: {emails}')
-        return list(emails)
+        return [{"value": email, "sources": [source]} for email in emails]
 
-    def extract_phones(self, text: str) -> list:
-        """Extract phone numbers from text
-
+    def extract_phones(self, text: str, source: str) -> List[Dict[str, Any]]:
+        """Extract phone numbers from text and remove duplicates.
+        
         Returns:
-            list: List of phone numbers found.
+            list: List of unique phone numbers found with their sources.
         """
-        phone_regex = re.compile(r'\b\d{10,15}\b')
-        return phone_regex.findall(text)
+        phone_regex = re.compile(r'\b(\+33|0)[1-9](?:[\s.-]?\d{2}){4}\b')
+        found_phones = phone_regex.findall(text)
+        unique_phones = list(set(found_phones))  # Utiliser un set pour éliminer les doublons
+        logging.debug(f'Extracted phones from {source}: {unique_phones}')
+        return [{"value": phone, "sources": [source]} for phone in unique_phones]
 
-    def extract_social_media(self, urls: List[str]) -> dict:
+    def extract_social_media(self, urls: List[str]) -> Dict[str, List[Dict[str, Any]]]:
         """Extract social media links from a list of URLs
-
+        
         Returns:
             dict: Dictionary of social media links found.
         """
@@ -185,61 +190,51 @@ class Scrapper:
         logging.debug(f'Extracted social media: {social_media}')
         return social_media
 
-    def extract_links_for_contact_info(self, urls: List[str]) -> List[str]:
+    def extract_links_for_contact_info(self, urls: List[str]) -> List[Dict[str, Any]]:
         """Extract contact information from specific links
-
+        
         Returns:
-            list: List of contact information found.
+            list: List of contact information found with their sources.
         """
         contact_info = []
         for url in urls:
             if "tel:" in url:
-                contact_info.append(url.replace("tel:", ""))
+                contact_info.append({"value": url.replace("tel:", ""), "sources": [self.url]})
             if "wa.me" in url:
                 match = re.search(r'wa.me/(\+?\d+)', url)
                 if match:
-                    contact_info.append(match.group(1))
+                    contact_info.append({"value": match.group(1), "sources": [self.url]})
         logging.debug(f'Extracted contact info from links: {contact_info}')
         return contact_info
 
-    def extract_siret_or_siren(self, text: str) -> dict:
+    def extract_siret_or_siren(self, text: str, source: str) -> Dict[str, List[Dict[str, Any]]]:
         """Extract SIRET or SIREN numbers from text
-
+        
         Returns:
-            dict: Extracted SIRET and SIREN numbers.
+            dict: Extracted SIRET and SIREN numbers with their sources.
         """
         siret_pattern = re.compile(r'\b\d{14}\b')
         siren_pattern = re.compile(r'\b\d{9}\b')
         siret_numbers = set(siret_pattern.findall(text))
         siren_numbers = set(siren_pattern.findall(text)) - set(num[:9] for num in siret_numbers)
 
-        logging.debug(f'Initial SIRET numbers: {siret_numbers}')
-        logging.debug(f'Initial SIREN numbers: {siren_numbers}')
+        logging.debug(f'Initial SIRET numbers in {source}: {siret_numbers}')
+        logging.debug(f'Initial SIREN numbers in {source}: {siren_numbers}')
 
-        valid_siret = []
-        valid_siren = None
-
-        # If SIRET numbers are found, use them and exclude SIREN
-        if siret_numbers:
-            valid_siret = list(siret_numbers)
-            logging.debug(f'Found SIRET numbers: {valid_siret}')
-        else:
-            # If no SIRET is found, use one of the SIREN numbers
-            if siren_numbers:
-                valid_siren = list(siren_numbers)[0]  # Take the first available SIREN
-                logging.debug(f'No SIRET found, using SIREN: {valid_siren}')
+        valid_siret = [{"value": num, "sources": [source]} for num in siret_numbers]
+        valid_siren = [{"value": num, "sources": [source]} for num in siren_numbers]
 
         logging.debug(f'Final SIRET numbers: {valid_siret}')
-        logging.debug(f'Final SIREN numbers: {[valid_siren] if valid_siren else []}')
+        logging.debug(f'Final SIREN numbers: {valid_siren}')
         
         return {
             "SIRET": valid_siret,
-            "SIREN": [valid_siren] if valid_siren else []
+            "SIREN": valid_siren
         }
 
-    def extract_meta_info(self, soup: BeautifulSoup) -> dict:
+    def extract_meta_info(self, soup: BeautifulSoup) -> Dict[str, Any]:
         """Extract meta information such as title, description, and headers
-
+        
         Returns:
             dict: Extracted meta information.
         """
@@ -264,9 +259,9 @@ class Scrapper:
             "headers": headers
         }
 
-    def get_homepage_meta_info(self) -> dict:
+    def get_homepage_meta_info(self) -> Dict[str, Any]:
         """Get meta information from the homepage URL
-
+        
         Returns:
             dict: Extracted meta information including title, description, and headers.
         """
@@ -283,9 +278,9 @@ class Scrapper:
                 "headers": {"H1": [], "H2": [], "H3": []}
             }
 
-    def getText(self) -> dict:
-        """Get text and other information from the URL
-
+    def getText(self) -> Dict[str, Any]:
+        """Get text and other information from the URL, ensuring no duplicate phone numbers or emails.
+        
         Returns:
             dict: Extracted information including text, URLs, emails, phone numbers, social media links, and SIRET/SIREN numbers.
         """
@@ -293,9 +288,10 @@ class Scrapper:
         filtered_urls = self.filter_urls(urls)
         all_text = []
         contents = []
-        all_emails = set()
-        all_siret = set()
-        all_siren = set()
+        all_emails = []
+        all_phones = []
+        all_siret = []
+        all_siren = []
 
         if self.crawl:
             for url in filtered_urls:
@@ -306,62 +302,70 @@ class Scrapper:
                             contents.append(req.text)
                             logging.debug(f'Crawled URL: {url}')
                             # Accumuler les e-mails et SIRET/SIREN de chaque page
-                            emails_found = self.extract_emails(req.text)
-                            siret_found = self.extract_siret_or_siren(req.text).get("SIRET", [])
-                            siren_found = self.extract_siret_or_siren(req.text).get("SIREN", [])
+                            emails_found = self.extract_emails(req.text, url)
+                            phones_found = self.extract_phones(req.text, url)
+                            siret_found = self.extract_siret_or_siren(req.text, url).get("SIRET", [])
+                            siren_found = self.extract_siret_or_siren(req.text, url).get("SIREN", [])
                             logging.debug(f'Emails found in {url}: {emails_found}')
+                            logging.debug(f'Phones found in {url}: {phones_found}')
                             logging.debug(f'SIRET found in {url}: {siret_found}')
                             logging.debug(f'SIREN found in {url}: {siren_found}')
-                            all_emails.update(emails_found)
-                            all_siret.update(siret_found)
-                            all_siren.update(siren_found)
+                            all_emails.extend(emails_found)
+                            all_phones.extend(phones_found)
+                            all_siret.extend(siret_found)
+                            all_siren.extend(siren_found)
                             break  # Exit the retry loop if successful
                     except requests.exceptions.RequestException as e:
                         logging.error(f'Error crawling URL {url}: {e}')
-                        time.sleep(2)  # Wait for 2 seconds before retrying
                         continue
         else:
-            req = requests.get(self.url, headers=self.get_headers(), proxies=self.get_random_proxy(), timeout=10)
-            contents.append(req.text)
-            all_emails.update(self.extract_emails(req.text))
-            siret_or_siren = self.extract_siret_or_siren(req.text)
-            all_siret.update(siret_or_siren.get("SIRET", []))
-            all_siren.update(siret_or_siren.get("SIREN", []))
+            try:
+                req = requests.get(self.url, headers=self.get_headers(), proxies=self.get_random_proxy(), timeout=10)
+                contents.append(req.text)
+                all_emails.extend(self.extract_emails(req.text, self.url))
+                all_phones.extend(self.extract_phones(req.text, self.url))
+                siret_or_siren = self.extract_siret_or_siren(req.text, self.url)
+                all_siret.extend(siret_or_siren.get("SIRET", []))
+                all_siren.extend(siret_or_siren.get("SIREN", []))
+            except Exception as e:
+                logging.error(f'Error fetching content from main URL: {e}')
 
         # Log all HTML content retrieved
         for content in contents:
             logging.debug(f'HTML content for email extraction: {content[:500]}...')  # Log the first 500 characters of each content
 
-        combined_text = ' '.join(contents)
-        phones = self.extract_phones(combined_text)
-        contact_info = self.extract_links_for_contact_info(urls)
-        phones.extend(contact_info)
+        phones = self.extract_links_for_contact_info(urls)
+        all_phones.extend(phones)
+        all_phones = list({phone['value']: phone for phone in all_phones}.values())  # Dédoublonner les numéros de téléphone
         social_media = self.extract_social_media(urls)
         homepage_meta_info = self.get_homepage_meta_info()
 
-        # Normalize phone numbers extracted from URLs
-        normalized_phones = [self.normalize_phone_number(phone) for phone in phones]
-
         logging.debug(f'Extracted emails: {all_emails}')
-        logging.debug(f'Extracted phone numbers: {phones}')
+        logging.debug(f'Extracted phone numbers: {all_phones}')
         logging.debug(f'Extracted social media: {social_media}')
         logging.debug(f'Extracted SIRET: {all_siret}')
         logging.debug(f'Extracted SIREN: {all_siren}')
         logging.debug(f'Extracted homepage meta info: {homepage_meta_info}')
 
+        # Dédoublonner toutes les clés
+        all_emails = list({email['value']: email for email in all_emails}.values())
+        all_siret = list({siret['value']: siret for siret in all_siret}.values())
+        all_siren = list({siren['value']: siren for siren in all_siren}.values())
+        
         return {
             "text": contents,
             "urls": urls,
-            "E-Mails": [{"value": email, "sources": [self.url]} for email in all_emails],
-            "Numbers": [{"value": phone, "sources": [self.url]} for phone in normalized_phones],
+            "E-Mails": all_emails,
+            "Numbers": all_phones,
             "SocialMedia": social_media,
-            "SIRET_OR_SIREN": {"SIRET": list(all_siret), "SIREN": list(all_siren)},
-            "HomepageMetaInfo": homepage_meta_info
+            "SIRET_OR_SIREN": {"SIRET": all_siret, "SIREN": all_siren},
+            "HomepageMetaInfo": homepage_meta_info,
+            "request_id": self.request_id
         }
 
     def normalize_phone_number(self, phone: str) -> str:
         """Normalize phone number format
-
+        
         Returns:
             str: Normalized phone number.
         """
@@ -369,7 +373,7 @@ class Scrapper:
 
     def filter_urls(self, urls: List[str]) -> List[str]:
         """Filter URLs to prioritize contact and legal pages
-
+        
         Returns:
             list: Filtered list of URLs.
         """
@@ -377,3 +381,17 @@ class Scrapper:
         filtered_urls = [url for url in urls if any(keyword in url.lower() for keyword in contact_keywords)]
         logging.debug(f'Filtered URLs: {filtered_urls}')
         return filtered_urls
+
+    def merge_data(self, original_data: Dict[str, Any], new_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Merge new data into original data while avoiding duplicates for emails and phone numbers.
+        """
+        for key in ['E-Mails', 'Numbers', 'SocialMedia']:
+            original_items = {item['value']: item for item in original_data.get(key, [])}
+            for new_item in new_data.get(key, []):
+                if new_item['value'] not in original_items:
+                    original_data[key].append(new_item)
+                else:
+                    original_items[new_item['value']]['sources'].extend(new_item['sources'])
+            original_data[key] = list(original_items.values())
+        return original_data
