@@ -1,156 +1,91 @@
-# Bulk Contact Scraper
-=====================================
+# Bulk Scraper 🕷️
 
-A fast and efficient Python scraper to extract contact information, company details, and technologies from multiple websites simultaneously. Built with modern asynchronous programming for optimal performance.
+A powerful tool to scrape multiple websites simultaneously and extract essential SEO information.
 
-## Features
-------------
+## 🚀 Features
 
-### Contact Information Extraction
--------------------------------
+- Single or bulk website scraping
+- SEO metadata extraction
+- Important tag analysis
+- Automatic CSV export
+- Recursive crawling support
 
-* Emails addresses (from visible text and encoded content)
-* Phone numbers (with international format support)
-* Social media links detection:
-  + Facebook
-  + LinkedIn
-  + Twitter/X
-  + Instagram
-  + YouTube
-  + GitHub
-  + Pinterest
-  + TikTok
-  + Snapchat
-  + Houzz
-  + Google Business
-  + Yelp
-  + Nextdoor
+## 📋 Prerequisites
 
-### Company Information
-----------------------
+- Python 3.7+
+- pip
 
-* SIREN number detection
-* SIRET number validation
-* VAT number extraction
-* Source tracking for company information
+## ⚙️ Installation
 
-### Technology Detection
-----------------------
+1. Clone the repository:
+```bash
+git clone https://github.com/your-repo/bulk-scraper.git
+cd bulk-scraper
+```
 
-* Content Management Systems (WordPress, Drupal, Joomla)
-* JavaScript Frameworks (React, Vue, Angular)
-* CSS Frameworks (Bootstrap, Tailwind)
-* Web Servers (Nginx, Apache)
-* Analytics Tools (Google Analytics, Matomo)
-* Marketing Tools (Google Tag Manager, Facebook Pixel)
-* E-commerce Platforms (WooCommerce, Shopify, PrestaShop)
-* Performance Tools (Cloudflare, Varnish)
-* JavaScript Libraries (jQuery, Lodash, Moment.js)
-* Font Services (Font Awesome, Google Fonts)
-* Security Features (reCAPTCHA, hCAPTCHA)
-* Build Tools (Webpack, Babel)
-* Mobile Optimization (AMP, PWA)
-
-### Advanced Features
---------------------
-
-* Asynchronous data extraction (simultaneous processing of multiple sites)
-* Intelligent page crawling with priority for contact and about pages
-* Headers analysis for technology detection
-* Security headers inspection
-* Multiple User-Agent rotation
-* Rate limiting and polite crawling
-* Error handling and timeout management
-* Progress tracking with tqdm
-* Results caching
-* Comprehensive logging
-* Data Export:
-  + JSON output with detailed information
-  + CSV export with flattened data structure
-  + Source tracking for all extracted information
-  + Timestamped results
-
-## Installation
---------------
-
-1. Clone the repository
 2. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
------
+## 📖 Usage
 
-### Basic Usage
--------------
-
+### Single site scraping
 ```bash
-python bulk_scraper.py --urls urls.txt
+python bulk_scraper.py --urls example.com --crawl
 ```
 
-### Command Line Options
-----------------------
-
-* `--urls`: Path to file containing URLs (one per line)
-* `--output`: Output directory for results (default: current directory)
-* `--crawl`: Enable/disable crawling of additional pages (default: enabled)
-
-### Example URL File (urls.txt)
------------------------------
-
+### Bulk scraping
+1. Create a `websites.txt` file in the root directory
+2. Add your URLs (one per line):
 ```text
 example.com
-example.org
-example.net
+site1.com
+site2.com
 ```
 
-### Results Format
------------------
-
-```json
-{
-  "status": "OK",
-  "request_id": "unique-id",
-  "data": [{
-    "domain": "example.com",
-    "crawled_pages": [{
-      "url": "https://example.com/contact",
-      "type": "contact"
-    }],
-    "contacts": [{
-      "value": "contact@example.com",
-      "sources": ["https://example.com/contact"]
-    }],
-    "phone_numbers": [{
-      "value": "+1 234-567-8900",
-      "sources": ["https://example.com/contact"]
-    }],
-    "social_media": {
-      "facebook": "https://facebook.com/example",
-      "twitter": "https://twitter.com/example"
-    },
-    "technologies": {
-      "cms": ["wordpress"],
-      "analytics": ["google-analytics"]
-    },
-    "company_info": {
-      "siren": "12345678",
-      "siret": "12345678900000",
-      "tva": "FR12345678900",
-      "source": "https://example.com/legal"
-    }
-  }]
-}
+3. Run the script:
+```bash
+python bulk_scraper.py --bulk --crawl
 ```
 
-## Notes
------
+### Available options
+- `--urls`: Single URL to scrape
+- `--bulk`: Enable bulk mode (uses websites.txt file)
+- `--crawl`: Enable site crawling
 
-* Respect websites' terms of use and robots.txt directives
-* Adjust request delays if necessary to avoid being blocked
-* Some websites may block automated requests
-* Consider legal implications when scraping and storing data
-* Ensure compliance with data protection regulations
+## 📊 Results
+
+Results are automatically exported to the `results/` folder in CSV format with:
+- Page URL
+- Title
+- Description
+- Keywords
+- H1, H2, H3 tags
+- And more...
+
+## 🤝 Contributing
+
+Contributions are welcome! To contribute:
+
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## ✨ Authors
+
+https://www.linkedin.com/in/wladimir-delcros/
+
+## 🙏 Acknowledgments
+
+- Hat tip to anyone who contributed
+- Inspiration
+- etc
 
 #webscraper
