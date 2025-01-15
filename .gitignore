@@ -24,11 +24,9 @@ wheels/
 # Virtual Environment
 venv/
 ENV/
-.env
 
 # IDE
 .idea/
-.vscode/
 *.swp
 *.swo
 *.swn
@@ -40,3 +38,5 @@ json/*.json
 html_content/
 resultats_scraping.json
 resultats_scraping.csv
+config.bat
+node_modules
