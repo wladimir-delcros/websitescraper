@@ -40,3 +40,8 @@ resultats_scraping.json
 resultats_scraping.csv
 config.bat
 node_modules
+
+# secrets
+.env
+.env*
+!.env.example
